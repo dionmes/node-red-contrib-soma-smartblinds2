@@ -1,0 +1,42 @@
+<script type="text/javascript">
+    RED.nodes.registerType('soma-smartblinds2',{
+        category: 'devices',
+        color: '#ff7f00',
+        inputs:1,
+        outputs:1,
+        align: 'right',
+        label: 'Smart Blinds',
+        paletteLabel: 'SmartBlinds2',
+        icon: 'smartblinds.svg',        
+        defaults: {
+            name: {value:'soma-smartblinds2'},
+            mac: {value: "", validate:RED.validators.required }
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="soma-smartblinds2">
+    <div class="form-row">
+        <label for="node-input-mac"><i class="fa fa-tag">BLE mac address</i></label>
+        <input type="text" id="node-input-mac" placeholder="Bluetooth mac address of blinds.">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="soma-smartblinds2">
+    <p>Node for Soma SmartBlinds 2.<br><br>
+    In the BLE mac address property of the node put in the BLE mac address of the Soma SmartBinds 2 device to connect.<br>
+    You can find this address by scanning for Bluetooth devices.
+    <h3>Status</H3>
+    The Node will observe and receive status message with all the current state information from the device. 
+	</p>
+	<h3>Commands</H3>
+	The input of the node accepts movement commands.<br><br>
+	<ul>
+		<li>MoveTo 'position 0-100' (ex. Moveto 50)</li>
+		<li>GetPosition</li>
+		<li>MoveUp</li>
+		<li>MoveDown</li>
+		<li>Stop</li>
+	</ul>
+	<br>
+</script>

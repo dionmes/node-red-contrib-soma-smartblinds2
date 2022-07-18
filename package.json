@@ -1,0 +1,30 @@
+{
+  "name": "node-red-contrib-soma-smartblinds2",
+  "version": "0.2.3",
+  "description": "NodeRed node for Soma smart blinds 2.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dionmes/node-red-contrib-soma-smartblinds2.git"
+  },
+  "keywords": [
+    "node-red",
+    "soma",
+    "smart blinds"
+  ],
+  "author": "Dion Mes",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dionmes/node-red-contrib-soma-smartblinds2/issues"
+  },
+  "homepage": "https://github.com/dionmes/node-red-contrib-some-smartblinds2#readme",
+  "node-red": {
+    "nodes": {
+      "soma-smartblinds2": "soma-smartblinds2.js"
+    }
+  },
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-15",
+    "async": "^3.2.3"
+  }
+}
