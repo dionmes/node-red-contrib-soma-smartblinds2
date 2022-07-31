@@ -37,7 +37,9 @@ module.exports = function(RED) {
 			if (somaDevice) {
 				somaDevice.disconnect();
 			}
-			done();
+			
+			// Node red done
+			if (done) { done(); }
 			
 		});		
 
@@ -56,14 +58,11 @@ module.exports = function(RED) {
 			if (peripheral.id == node.id) {
 				
 				node.log("ID found.");
-
 				bt_noble.stopScanning();
-
 				node.log("Stopped scanning");
-
 				node.somaDevice = peripheral;
-				
 				connect_to_somaDevice();
+				
 			}
 			
 		});
@@ -71,14 +70,9 @@ module.exports = function(RED) {
 		// bt_noble statechange event
 		bt_noble.on('stateChange', bt_nobleState);
 
-		if (node.id !== "") {
+		if (node.id == "") {
 		
-			// Init on current bt_noble sate
-			//bt_nobleState(bt_noble.state);
-				
-		} else {
-		
-			node.status({fill:"grey",shape:"dot",text:"Not configured."});
+			node.status({fill:"grey",shape:"dot",text:"Not configured"});
 			node.error("BLE mac address not configured.");
 		
 		}
@@ -95,7 +89,7 @@ module.exports = function(RED) {
 
 				if (node.bt_noble_disconnectHandler) { clearTimeout(node.bt_noble_disconnectHandler)};
 				
-				node.status({fill:"blue",shape:"ring",text: "Start scanning for : " + node.id});
+				node.status({fill:"blue",shape:"ring",text: "Start scanning" });
 				node.send({ topic: "connection", payload: { "connection" : "scanning" } });
 				
 				node.log("Noble starts scanning.");
@@ -106,7 +100,7 @@ module.exports = function(RED) {
 			
 				if (state !== "resetting") {
 					
-					node.status({fill:"red",shape:"ring",text: "Bluetooth reset. "});
+					node.status({fill:"red",shape:"ring",text: "Bluetooth reset"});
 					node.error("BT Noble Reset");
 					
 					node.bt_noble_disconnectHandler = setTimeout(() => {
@@ -128,7 +122,7 @@ module.exports = function(RED) {
 				try {
 					var commandstring = msg.payload.toString().toLowerCase();
 				} catch(error) {
-					node.error("Command not recognized. ");
+					node.error("Command not recognized.");
 					return;	
 				}
 
@@ -137,12 +131,11 @@ module.exports = function(RED) {
 				//Handle command
 				switch (commandArray[0]) {
 				  case 'moveto':
-
 						var move_to_postion;  	
 						try {
 							move_to_postion = parseInt(commandArray[1]);
 						} catch(error) {
-							node.error("Position not recognized. ");
+							node.error("Position not recognized.");
 							return;	
 						}
 
@@ -154,34 +147,26 @@ module.exports = function(RED) {
 						}
 
 						node.movePercentCharacteristic.write(Buffer.from([movePercentString.toString(16)]), false, function(error) {
-							if (error) {
-								node.log('ERROR writing to position - %o', error);
-							}
+							if (error) { node.log(error); }
 						});
 	
 						break;
 
 				  case 'moveup':
 						node.motorCharacteristic.write(Buffer.from([0x69]), false, (error) => {
-							if (error) {
-								node.log(error);
-							}
+							if (error) { node.log(error); }
 						});
 						break;
 				  
 				  case 'movedown':
 						node.motorCharacteristic.write(Buffer.from([0x96]), true, (error) => {
-							if (error) {
-								node.log(error);
-							}
+							if (error) { node.log(error); }
 						});
 					  	break;
 				  
 				  case 'stop':
 						node.motorCharacteristic.write(Buffer.from([0]), false, (error) => {
-							if (error) {
-								node.log('ERROR writing stop - %o', error);
-							}
+							if (error) { node.log(error); }
 							node.positionCharacteristic.read();
 						});
 					  	break;
@@ -206,12 +191,12 @@ module.exports = function(RED) {
 		//
 		function connect_to_somaDevice() {
 	
-			node.status({ fill:"blue",shape:"dot",text: "Connecting : " + node.somaDevice.id });
+			node.status({ fill:"blue",shape:"dot",text: "Connecting"});
 			node.send({ topic: "connection", payload: { "connection" : "connecting" } });
 			
 			node.somaDevice.once('disconnect', () => {
 	
-				node.status({ fill:"red",shape:"dot",text: "Disconnected : " + node.somaDevice.id });
+				node.status({ fill:"red",shape:"dot",text: "Disconnected" });
 				node.send({ topic: "connection", payload: { "connection" : "disconnected" } });
 				node.log("disconnect");
 				
@@ -230,8 +215,8 @@ module.exports = function(RED) {
 					node.log("connect error");
 					node.somaDevice.disconnect();
 					
-					node.status({ fill:"red",shape:"dot",text: "Error connecting (trying to reconnect) : " + node.somaDevice.id });
-					node.error("Connecting error (trying to reconnect) : " + error);
+					node.status({ fill:"red",shape:"dot",text: "Error connecting (Reconnecting)"});
+					node.error("Connecting error (Reconnecting) : " + error);
 
 					node.peripheral_disconnectHandler = setTimeout(() => {
 						connect_to_somaDevice();
@@ -244,8 +229,9 @@ module.exports = function(RED) {
 				if (node.peripheral_disconnectHandler) clearTimeout(node.peripheral_disconnectHandler);
 				if (node.bt_noble_disconnectHandler) clearTimeout(node.bt_noble_disconnectHandler);
 
-				node.status({ fill:"green",shape:"dot",text: "connected : " + node.somaDevice.id });
+				node.status({ fill:"green",shape:"dot",text: "connected"});
 				node.send({ topic: "connection", payload: { "connection" : "connected"} });
+				node.log("Connected");
 
 				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID];				
 				
@@ -268,7 +254,7 @@ module.exports = function(RED) {
 					
 					node.positionCharacteristic.on('data', (data) => {
 						node.position = 100 - data[0];
-						node.send({ topic: "connection", payload: { "position" : node.position} });
+						node.send({ topic: "position", payload: { "position" : node.position} });
 					});
 					
 					node.positionCharacteristic.read();
