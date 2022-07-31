@@ -10,21 +10,21 @@
         icon: 'smartblinds.svg',        
         defaults: {
             name: {value:'soma-smartblinds2'},
-            mac: {value: "", validate:RED.validators.required }
+            id: {value: "", required: true }
         }
     });
 </script>
 
 <script type="text/html" data-template-name="soma-smartblinds2">
     <div class="form-row">
-        <label for="node-input-mac"><i class="fa fa-tag">BLE mac address</i></label>
-        <input type="text" id="node-input-mac" placeholder="Bluetooth mac address of blinds.">
+        <label for="node-input-id"><i class="fa fa-tag">BLE ID/address</i></label>
+        <input type="text" id="node-input-id" placeholder="Bluetooth address of blinds.">
     </div>
 </script>
 
 <script type="text/html" data-help-name="soma-smartblinds2">
     <p>Node for Soma SmartBlinds 2.<br><br>
-    In the BLE mac address property of the node put in the BLE mac address of the Soma SmartBinds 2 device to connect.<br>
+    In the BLE ID/ddress property of the node put in the BLE  ID/address of the Soma SmartBinds 2 device to connect.<br>
     You can find this address by scanning for Bluetooth devices.
     <h3>Status</H3>
     The Node will observe and receive status message with all the current state information from the device. 

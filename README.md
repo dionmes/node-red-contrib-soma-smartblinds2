@@ -1,27 +1,33 @@
 # node-red-contrib-sonma-blinds2
 NodeRed node for Soma Smart Blinds 2
 
-# What is this node ?
+## What is this node ?
 
 This is a node for Node-Red to view the status and send commands to Soma smart blinds 2 via Bluetooth (BLE)
 
-# Configuration
+## Configuration
 
-In the mac property of the node put in the mac address without colons (one longs string of hex. numbers)
+In the id property of the node put in the id/address without colons (one longs string of hex. numbers), use ID on OSX.
 
-# Usage
+## Usage
 
-The Node will connect and receive status messages
+The Node will connect and receive status messages like position, battery or connection
 
 ## Commands
 
-The input of the node accepts two type of commands.
+The Node accepts the following commmands;
 
-# Bluetooth
+- moveto (0-99)
+- moveup
+- movedown
+- stop
+- getposition
+
+## Bluetooth
 - Compatible Bluetooth 5.0 Zephyr HCI-USB adapter (you need to add BLUETOOTH_HCI_SOCKET_USB_VID and BLUETOOTH_HCI_SOCKET_USB_PID to the process env)
 - Compatible Bluetooth 4.0 USB adapter
 
-# Running without root/sudo (Linux-specific, not always necessary).
+## Running without root/sudo (Linux-specific, not always necessary).
 
 Run the following command:  
 ```
