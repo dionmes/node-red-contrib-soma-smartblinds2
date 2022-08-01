@@ -32,12 +32,20 @@ module.exports = function(RED) {
 		node.trace("Soma Smartblinds node started.");
 				
 		// Register node close event
-		node.on('close', function(done) {
+		node.on('close', function(removed, done) {
 
-			if (somaDevice) {
-				somaDevice.disconnect();
+			node.status({ fill:"grey",shape:"ring",text: "Closing node."});
+
+			if (node.somaDevice) {
+				node.somaDevice.disconnect();
 			}
 			
+			if (!removed) {
+				node.id = config.id.toLowerCase().replace(/:/g,'');
+				bt_noble.reset();
+				node.status({fill:"red",shape:"ring",text: "Bluetooth reset"});
+			}
+
 			// Node red done
 			if (done) { done(); }
 			
@@ -59,7 +67,7 @@ module.exports = function(RED) {
 				
 				node.log("ID found.");
 				bt_noble.stopScanning();
-				node.log("Stopped scanning");
+				node.log("Stopped scanning");				
 				node.somaDevice = peripheral;
 				connect_to_somaDevice();
 				
@@ -231,7 +239,8 @@ module.exports = function(RED) {
 
 				node.status({ fill:"green",shape:"dot",text: "connected"});
 				node.send({ topic: "connection", payload: { "connection" : "connected"} });
-				node.log("Connected");
+
+				node.log("Connected" + node.somaDevice );
 
 				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID];				
 				
