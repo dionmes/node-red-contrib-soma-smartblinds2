@@ -24,7 +24,6 @@
     }
   },
   "dependencies": {
-    "@abandonware/noble": "^1.9.2-15",
-    "async": "^3.2.3"
+    "@abandonware/noble": "^1.9.2-15"
   }
 }

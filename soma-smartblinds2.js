@@ -2,11 +2,11 @@ module.exports = function(RED) {
 
 	function SmartBlindsNode(config) {
 		
-		const bt_noble = require('@abandonware/noble');
-
 		RED.nodes.createNode(this,config);
 
 		var node = this;
+
+		const noble = require('@abandonware/noble');
 		
 		const positionCharUUID = '00001525b87f490c92cb11ba5ea5167c';
 		const movePercentUUID = '00001526b87f490c92cb11ba5ea5167c';
@@ -18,101 +18,113 @@ module.exports = function(RED) {
 		const calibrateCharUUID = '00001529b87f490c92cb11ba5ea5167c';
 
 		var somaDevice;
-		var bt_noble_disconnectHandler;
-		var peripheral_disconnectHandler;
-		var position;
-		var battery;
+		var nobleDisconnectHandler;
+		var peripheralDisconnectHandler;
 		var movePercentCharacteristic;
+		var positionCharacteristic;
 		var motorCharacteristic;
 		var positionCharacteristic;
 		var battPercentCharacteristic;
+		var autoReconnect = true;
 		
-		node.id = config.id.toLowerCase().replace(/:/g,'');
-
-		node.trace("Soma Smartblinds node started.");
-				
+		var id = config.id.toLowerCase().replace(/:/g,'');
+		
+		node.log("Soma Smartblinds node started. " + node.id);
+		
 		// Register node close event
-		node.on('close', function(removed, done) {
-
-			node.status({ fill:"grey",shape:"ring",text: "Closing node."});
+		this.on('close', function(removed, done) {
+			
+			node.log("Node stop init.");
+			node.status({ fill:"grey",shape:"ring",text: ""});
+			noble.stopScanning();
 
 			if (node.somaDevice) {
-				node.somaDevice.disconnect();
-			}
-			
-			if (!removed) {
-				node.id = config.id.toLowerCase().replace(/:/g,'');
-				bt_noble.reset();
-				node.status({fill:"red",shape:"ring",text: "Bluetooth reset"});
-			}
 
-			// Node red done
-			if (done) { done(); }
-			
+				node.log("Disconnect device while stopping.")
+
+				node.autoReconnect = false;
+				node.somaDevice.disconnect((error) => {
+					noble.removeAllListeners('discover');
+					noble.removeAllListeners('stateChange');
+					done();
+					node.log("Node stop finished after disconnect.");			
+				});
+	
+			} else {
+	
+				noble.removeAllListeners('discover');
+				noble.removeAllListeners('stateChange');
+				done();			
+	
+				node.log("Node stop finished.");			
+			}
 		});		
 
 		// Register input events
-		node.on('input', (msg, send, done) => {
+		this.on('input', (msg, send, done) => {
 			// Handle command
-			receiveCommand(node,send,msg);
+			receiveCommand(msg);
 
 			// Node red done
 			if (done) { done(); }
 		});
 
+		// noble statechange event
+		noble.on('stateChange', nobleState);
+		
 		// Discovered device event
-		bt_noble.on('discover', function (peripheral) {
+		noble.on('discover', function (peripheral) {
 			
+			node.log("Found." + peripheral.id + " " + peripheral.advertisement.localName);
+
 			if (peripheral.id == node.id) {
 				
-				node.log("ID found.");
-				bt_noble.stopScanning();
-				node.log("Stopped scanning");				
+				node.log("ID found. " + node.id);
+				noble.stopScanning();
+				node.log("Stopped scanning");
 				node.somaDevice = peripheral;
-				connect_to_somaDevice();
+				connectToSomaDevice();
 				
 			}
 			
 		});
-				
-		// bt_noble statechange event
-		bt_noble.on('stateChange', bt_nobleState);
-
+						
 		if (node.id == "") {
-		
 			node.status({fill:"grey",shape:"dot",text:"Not configured"});
 			node.error("BLE mac address not configured.");
-		
-		}
-		
+		} else {
+			// Manual init event
+			nobleState(noble.state);
+			
+		} 
+				
 		//
-		// function bt_nobleState(state)
-		// Handle state change of bt_noble (Bluetooth lib.)
+		// function nobleState(state)
+		// Handle state change of noble (Bluetooth lib.)
 		//
-		function bt_nobleState(state) {
+		function nobleState(state) {
 
 			node.log("BT Noble state : " + state);
 
 			if (state == "poweredOn") {
 
-				if (node.bt_noble_disconnectHandler) { clearTimeout(node.bt_noble_disconnectHandler)};
+				if (node.nobleDisconnectHandler) { clearTimeout(node.nobleDisconnectHandler)};
 				
 				node.status({fill:"blue",shape:"ring",text: "Start scanning" });
 				node.send({ topic: "connection", payload: { "connection" : "scanning" } });
 				
 				node.log("Noble starts scanning.");
 
-				bt_noble.startScanning();
+				noble.startScanning();
 			
 			} else {
 			
 				if (state !== "resetting") {
-					
 					node.status({fill:"red",shape:"ring",text: "Bluetooth reset"});
 					node.error("BT Noble Reset");
 					
-					node.bt_noble_disconnectHandler = setTimeout(() => {
-						bt_noble.reset();		
+					node.nobleDisconnectHandler = setTimeout(() => {
+						//noble.reset();		
 					}, 7*1000);
 				}
 							
@@ -120,10 +132,110 @@ module.exports = function(RED) {
 		}
 
 		//
+		// function connectToSomaDevice()
+		// Connect to found Soma Peripheral
+		//
+		function connectToSomaDevice() {
+	
+			node.status({ fill:"blue",shape:"dot",text: "Connecting"});
+			node.send({ topic: "connection", payload: { "connection" : "connecting" } });
+			
+			node.somaDevice.once('disconnect', () => {
+	
+				node.status({ fill:"red",shape:"dot",text: "Disconnected" });
+				node.send({ topic: "connection", payload: { "connection" : "disconnected" } });
+				node.log("disconnect");
+				
+				if (node.autoReconnect) { 
+					node.peripheralDisconnectHandler = setTimeout(() => {
+						connectToSomaDevice();
+					}, 10*1000);				
+				}			
+		
+			});
+		
+			node.somaDevice.connect((error) => {
+				
+				if (error) {
+					
+					node.log("connect error");
+					node.somaDevice.disconnect();
+					
+					node.status({ fill:"red",shape:"dot",text: "Error connecting (Reconnecting)"});
+					node.error("Connecting error (Reconnecting) : " + error);
+					
+					node.peripheralDisconnectHandler = setTimeout(() => {
+						connectToSomaDevice();
+					}, 10*1000);
+		
+					return;
+				}
+		
+				node.autoReconnect = true;
+				
+				// Clear timers
+				if (node.peripheralDisconnectHandler) clearTimeout(node.peripheralDisconnectHandler);
+				if (node.nobleDisconnectHandler) clearTimeout(node.nobleDisconnectHandler);
+
+				node.status({ fill:"green",shape:"dot",text: "connected"});
+				node.send({ topic: "connection", payload: { "connection" : "connected"} });
+
+				node.log("Connected" + node.somaDevice );
+
+				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID];				
+				
+				// Characteristics subscribe
+				node.somaDevice.discoverSomeServicesAndCharacteristics([], expectedCharUuids, (error, services, characteristics) => {
+
+					node.log("Characteristics init");
+
+					let discoveredUuids = characteristics.map((char) => char.uuid);
+					let missingCharacteristics = expectedCharUuids.filter((char) => !discoveredUuids.includes(char));
+
+					if (missingCharacteristics.length !== 0) {
+						node.error('Missing characteristics: %o', missingCharacteristics);
+						node.somaDevice.disconnect();
+						
+						// Needs retry from scanning
+						return;
+					}
+					
+					node.positionCharacteristic = characteristics.filter(char => char.uuid === positionCharUUID)[0];
+					node.positionCharacteristic.subscribe();
+					
+					node.positionCharacteristic.on('data', (data) => {
+						const position = 100 - data[0];
+						node.send({ topic: "position", payload: { "position" : position} });
+					});
+					
+					node.positionCharacteristic.read();
+
+					node.battPercentCharacteristic = characteristics.filter(char => char.uuid === battPercentUUID)[0];
+					node.battPercentCharacteristic.subscribe();
+					
+					node.battPercentCharacteristic.on('data', (data) => {
+						let reading = data[0];
+						const batt = Math.min(100, reading / 75 * 100).toFixed(0);
+						const battery = parseInt(batt);
+						node.send({ topic: "battery", payload: { "battery" : battery} });
+					});
+					
+					node.battPercentCharacteristic.read();
+
+					node.movePercentCharacteristic = characteristics.filter(char => char.uuid === movePercentUUID)[0];
+					node.motorCharacteristic = characteristics.filter(char => char.uuid === motorCharUUID)[0];
+					
+					node.log("Characteristics read");
+				});
+				
+			});
+		}
+		
+		//
 		// function receiveCommand(node, msg)
 		// Handle commands received on node input.
 		//
-		function receiveCommand(node, send, msg) {
+		function receiveCommand(msg) {
 
 			if (node.somaDevice) {
 
@@ -139,7 +251,8 @@ module.exports = function(RED) {
 				//Handle command
 				switch (commandArray[0]) {
 				  case 'moveto':
-						var move_to_postion;  	
+						var move_to_postion;
+						  	
 						try {
 							move_to_postion = parseInt(commandArray[1]);
 						} catch(error) {
@@ -190,104 +303,7 @@ module.exports = function(RED) {
 				return;
 				
 			}
-
     	}
-
-		//
-		// function connect_to_somaDevice()
-		// Connect to found Soma Peripheral
-		//
-		function connect_to_somaDevice() {
-	
-			node.status({ fill:"blue",shape:"dot",text: "Connecting"});
-			node.send({ topic: "connection", payload: { "connection" : "connecting" } });
-			
-			node.somaDevice.once('disconnect', () => {
-	
-				node.status({ fill:"red",shape:"dot",text: "Disconnected" });
-				node.send({ topic: "connection", payload: { "connection" : "disconnected" } });
-				node.log("disconnect");
-				
-				node.peripheral_disconnectHandler = setTimeout(() => {
-		
-					connect_to_somaDevice();
-			
-				}, 10*1000);
-		
-			});
-		
-			node.somaDevice.connect((error) => {
-				
-				if (error) {
-					
-					node.log("connect error");
-					node.somaDevice.disconnect();
-					
-					node.status({ fill:"red",shape:"dot",text: "Error connecting (Reconnecting)"});
-					node.error("Connecting error (Reconnecting) : " + error);
-
-					node.peripheral_disconnectHandler = setTimeout(() => {
-						connect_to_somaDevice();
-					}, 10*1000);
-		
-					return;
-				}
-		
-				// Clear timers
-				if (node.peripheral_disconnectHandler) clearTimeout(node.peripheral_disconnectHandler);
-				if (node.bt_noble_disconnectHandler) clearTimeout(node.bt_noble_disconnectHandler);
-
-				node.status({ fill:"green",shape:"dot",text: "connected"});
-				node.send({ topic: "connection", payload: { "connection" : "connected"} });
-
-				node.log("Connected" + node.somaDevice );
-
-				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID];				
-				
-				// Characteristics subscribe
-				node.somaDevice.discoverSomeServicesAndCharacteristics([], expectedCharUuids, (error, services, characteristics) => {
-
-					let discoveredUuids = characteristics.map((char) => char.uuid);
-					let missingCharacteristics = expectedCharUuids.filter((char) => !discoveredUuids.includes(char));
-
-					if (missingCharacteristics.length !== 0) {
-						node.error('Missing characteristics: %o', missingCharacteristics);
-						node.somaDevice.disconnect();
-						
-						// Needs retry from scanning
-						return;
-					}
-					
-					node.positionCharacteristic = characteristics.filter(char => char.uuid === positionCharUUID)[0];
-					node.positionCharacteristic.subscribe();
-					
-					node.positionCharacteristic.on('data', (data) => {
-						node.position = 100 - data[0];
-						node.send({ topic: "position", payload: { "position" : node.position} });
-					});
-					
-					node.positionCharacteristic.read();
-
-					node.battPercentCharacteristic = characteristics.filter(char => char.uuid === battPercentUUID)[0];
-					node.battPercentCharacteristic.subscribe();
-					
-					node.battPercentCharacteristic.on('data', (data) => {
-						let reading = data[0];
-						var batt = Math.min(100, reading / 75 * 100).toFixed(0);
-						node.battery = parseInt(batt);
-						node.send({ topic: "battery", payload: { "battery" : node.battery} });
-					});
-					
-					node.battPercentCharacteristic.read();
-
-					node.movePercentCharacteristic = characteristics.filter(char => char.uuid === movePercentUUID)[0];
-					node.motorCharacteristic = characteristics.filter(char => char.uuid === motorCharUUID)[0];
-					
-				});
-				
-			});
-		}
-
 	}
 	
 	RED.nodes.registerType("soma-smartblinds2",SmartBlindsNode);
