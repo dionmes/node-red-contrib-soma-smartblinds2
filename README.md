@@ -3,11 +3,15 @@ NodeRed node for Soma Smart Blinds 2
 
 ## What is this node ?
 
-This is a node for Node-Red to view the status and send commands to Soma smart blinds 2 via Bluetooth (BLE)
+This is a node for Node-Red to control Soma smart blinds 2 via Bluetooth (BLE) directly. No bridge or additional hardware/software is necessary.
+
+It is heavily based on the work by @andersonshatch , https://github.com/andersonshatch/soma-ctrl
+
+The SOMA smart shade device needs to be configured with the SOMA app before connecting.
 
 ## Configuration
 
-In the id property of the node put in the id/address without colons (one longs string of hex. numbers), use ID on OSX.
+Scan for the devices with the scan button. Look for devices with the name S or RISE to identify the id.
 
 ## Usage
 
@@ -17,15 +21,22 @@ The Node will connect and receive status messages like position, battery or conn
 
 The Node accepts the following commmands;
 
-- moveto (0-99)
+- moveto (0-100)
 - moveup
 - movedown
 - stop
 - getposition
+- identify
+
+## Position 
+The device will try to move to the exact position but will stop at approximation. Position will be correctly reported.
 
 ## Bluetooth
+
 - Compatible Bluetooth 5.0 Zephyr HCI-USB adapter (you need to add BLUETOOTH_HCI_SOCKET_USB_VID and BLUETOOTH_HCI_SOCKET_USB_PID to the process env)
 - Compatible Bluetooth 4.0 USB adapter
+
+Distance is important. Make sure the bluetooth signal is strong enough.
 
 ## Running without root/sudo (Linux-specific, not always necessary).
 

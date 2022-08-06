@@ -1,4 +1,5 @@
 <script type="text/javascript">
+
     RED.nodes.registerType('soma-smartblinds2',{
         category: 'devices',
         color: '#ff7f00',
@@ -9,25 +10,108 @@
         paletteLabel: 'SmartBlinds2',
         icon: 'smartblinds.svg',        
         defaults: {
-            name: {value:'soma-smartblinds2'},
-            id: {value: "", required: true }
-        }
+            btId: {value: "", required: true },
+        },
+        oneditprepare: function() {
+        
+            var scanningInterval;
+			var editor = this;
+				
+			$("#node-input-btId").append("<option value=''>Not selected</option>");
+			if (editor.btId !== undefined && editor.btId !=="") {
+				$("#node-input-btId").append("<option selected value=" + editor.btId + ">" + editor.btId + "</option>");
+			}
+			
+			$("#bt_scan").click( function() {
+				if ( $("#bt_scan").text() == "Scan" ) {
+					startBTScan();
+				} else {
+					stoptBTScan();
+				}
+			});
+
+			$("#node-input-btId").change( function() {
+				stoptBTScan();
+			});
+
+			function startBTScan() {
+			
+				$.getJSON('smartblinds-bluetooth-scan-start',function(data) {
+					$("#bt_scan").html("Stop scan <i class='fa fa-spinner fa-pulse'></i>");
+				 });
+			 
+				 scanningInterval = setInterval(() => { 
+				 
+					$.getJSON('smartblinds-bluetooth-list',function(data) {
+						
+						$("#node-input-btId option").remove();
+						
+						$("#node-input-btId").append("<option value=''>Not selected</option>");
+						if (editor.btId !== undefined && editor.btId !=="") {
+							$("#node-input-btId").append("<option selected value=" + editor.btId + ">" + editor.btId + "</option>");
+						}
+
+						$.each(data.devices, function (index, value) {
+							
+							if (value.id !== editor.btId) {
+								if (value.name == undefined) {
+									$("#node-input-btId").append("<option value=" + value.id + ">" + value.id + "</option>");
+								} else {
+									$("#node-input-btId").append("<option value=" + value.id + ">" + value.name + "</option>");
+								}
+							}
+							
+						});
+						
+						if (! data.editorScan)  {
+							clearInterval(scanningInterval);
+							$("#bt_scan").text("Scan");
+						}
+						
+					 });
+				 }, 3*1000);
+			}
+
+			function stoptBTScan() {
+				clearInterval(scanningInterval);
+				$.getJSON('smartblinds-bluetooth-scan-stop',function(data) {
+					$("#bt_scan").text("Scan");
+				 });
+			}
+			
+        },
+        oneditsave: function () {
+         	$.getJSON('smartblinds-bluetooth-scan-stop') },
+        oneditcancel:  function () {
+         	$.getJSON('smartblinds-bluetooth-scan-stop') },
+        oneditdelete:  function () {
+         	$.getJSON('smartblinds-bluetooth-scan-stop') }
     });
+
 </script>
 
 <script type="text/html" data-template-name="soma-smartblinds2">
+
     <div class="form-row">
-        <label for="node-input-id"><i class="fa fa-tag">ID/Address</i></label>
-        <input type="text" id="node-input-id" placeholder="Bluetooth id/address of blinds.">
+	    <button type="button" class="red-ui-button" id="bt_scan">Scan</button>
     </div>
+
+    <div class="form-row">
+        <label for="node-input-btId">Device ID <i class="fa fa-bluetooth-b"></i></label>
+        <select id="node-input-btId""></select>
+    </div>
+    
+    <div class="form-tips"><b>Tip: </b>Look for devices with the name S or RISE to connect with the Soma SmartBlinds device.</div>
+     
 </script>
 
 <script type="text/html" data-help-name="soma-smartblinds2">
-    <p>Node for Soma SmartBlinds 2.<br><br>
-    In the BLE ID/ddress property of the node put in the BLE  ID/address of the Soma SmartBinds 2 device to connect.<br>
-    You can find this address by scanning for Bluetooth devices.
-    <h3>Status</H3>
-    The Node will observe and receive status message with all the current state information from the device. 
+    <p>Node for Soma SmartBlinds 2.</p>
+    In the Device ID menu select the SmartBlinds device to connect.
+	The SOMA smart shade device needs to be configured with the SOMA app before connecting.
+    After pressing the scan button, devices will appear in the dropdown menu. Look for devices with the name S or RISE to connect with the device.
+    <h3>Messages</H3>
+    The Node will report battery and position messages.
 	</p>
 	<h3>Commands</H3>
 	The input of the node accepts movement commands.<br><br>
@@ -37,6 +121,8 @@
 		<li>MoveUp</li>
 		<li>MoveDown</li>
 		<li>Stop</li>
+		<li>Identify</li>
 	</ul>
+	The device will try to move to the exact position but will stop at approximation. Position will be correctly reported.
 	<br>
 </script>
