@@ -73,8 +73,6 @@ module.exports = function(RED) {
 		// Discovered device event
 		noble.on('discover', function (peripheral) {
 		
-			node.log("found. " + peripheral.id + " " + peripheral.advertisement.localName);
-
 			if (peripheral.id == btId) {
 				
 				node.log("ID found. " + btId);
