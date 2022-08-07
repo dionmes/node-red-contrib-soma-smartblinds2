@@ -19,6 +19,7 @@ module.exports = function(RED) {
 		const battPercentUUID = '2a19';
 		const notifyUUID = '00001531b87f490c92cb11ba5ea5167c';
 		const calibrateCharUUID = '00001529b87f490c92cb11ba5ea5167c';
+		const chargingCharUUID = '00001894b87f490c92cb11ba5ea5167c';
 
 		var somaDevice;
 		var peripheralDisconnectHandler;
@@ -29,6 +30,7 @@ module.exports = function(RED) {
 		var motorCharacteristic;
 		var battPercentCharacteristic;
 		var identifyCharacteristic;
+		var chargingCharacteristic;
 				
 		var btId = config.btId.toLowerCase().replace(/:/g,'');
 		
@@ -163,7 +165,7 @@ module.exports = function(RED) {
 				node.status({ fill:"green",shape:"dot",text: "connected"});
 				node.send({ topic: "connection", payload: { "connection" : "connected"} });
 
-				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID];
+				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID, chargingCharUUID];
 				
 				// Characteristics subscribe
 				somaDevice.discoverSomeServicesAndCharacteristics([], expectedCharUuids, (error, services, characteristics) => {
@@ -180,6 +182,15 @@ module.exports = function(RED) {
 						return;
 					}
 					
+					chargingCharacteristic = characteristics.filter(char => char.uuid === chargingCharUUID)[0];
+					chargingCharacteristic.subscribe();
+					
+					chargingCharacteristic.on('data', (data) => {
+						const bytes = data.slice(0,2);
+						const charging = bytes.readIntLE(0, Buffer.byteLength(bytes));
+						node.send({ topic: "charging", payload: { "charging" : charging} });
+					});
+
 					positionCharacteristic = characteristics.filter(char => char.uuid === positionCharUUID)[0];
 					positionCharacteristic.subscribe();
 					
