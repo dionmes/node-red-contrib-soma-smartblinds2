@@ -1,4 +1,4 @@
-# node-red-contrib-sonma-blinds2
+# node-red-contrib-soma-blinds2
 NodeRed node for Soma Smart Blinds 2
 
 ## What is this node ?
