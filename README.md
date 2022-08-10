@@ -21,15 +21,18 @@ The Node will connect and receive status messages like position, battery or conn
 
 The Node accepts the following commmands;
 
-- moveto (0-100)
-- moveup
-- movedown
+- moveTo (0-100)
+- moveUp
+- moveDown
 - stop
-- getposition
+- getPosition
 - identify
 
 ## Position 
 The device will try to move to the exact position but will stop at approximation. Position will be correctly reported.
+
+## Changes;
+- 0.3.0, Added Charging and panel reporting.
 
 ## Bluetooth
 

@@ -20,10 +20,12 @@ module.exports = function(RED) {
 		const notifyUUID = '00001531b87f490c92cb11ba5ea5167c';
 		const calibrateCharUUID = '00001529b87f490c92cb11ba5ea5167c';
 		const chargingCharUUID = '00001894b87f490c92cb11ba5ea5167c';
-
+		const configCharUUID = '00001896b87f490c92cb11ba5ea5167c';
+		
 		var somaDevice;
 		var peripheralDisconnectHandler;
 		var autoReconnect = true;
+		var connected = false;
 
 		var movePercentCharacteristic;
 		var positionCharacteristic;
@@ -31,6 +33,7 @@ module.exports = function(RED) {
 		var battPercentCharacteristic;
 		var identifyCharacteristic;
 		var chargingCharacteristic;
+		var configCharacteristic;
 				
 		var btId = config.btId.toLowerCase().replace(/:/g,'');
 		
@@ -128,7 +131,9 @@ module.exports = function(RED) {
 			node.send({ topic: "connection", payload: { "connection" : "connecting" } });
 			
 			somaDevice.once('disconnect', () => {
-	
+				
+				connected = false;
+				
 				node.status({ fill:"red",shape:"dot",text: "Disconnected" });
 				node.send({ topic: "connection", payload: { "connection" : "disconnected" } });
 				
@@ -143,6 +148,7 @@ module.exports = function(RED) {
 			somaDevice.connect((error) => {
 				
 				if (error) {
+					connected = false;
 					
 					node.log("connect error");
 					somaDevice.disconnect();
@@ -162,10 +168,10 @@ module.exports = function(RED) {
 				// Clear timers
 				if (peripheralDisconnectHandler) clearTimeout(peripheralDisconnectHandler);
 
-				node.status({ fill:"green",shape:"dot",text: "connected"});
-				node.send({ topic: "connection", payload: { "connection" : "connected"} });
+				node.status({ fill:"blue",shape:"dot",text: "Discovering"});
+				node.send({ topic: "connection", payload: { "connection" : "discovering"} });
 
-				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID, chargingCharUUID];
+				let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID, chargingCharUUID, configCharUUID];
 				
 				// Characteristics subscribe
 				somaDevice.discoverSomeServicesAndCharacteristics([], expectedCharUuids, (error, services, characteristics) => {
@@ -178,17 +184,44 @@ module.exports = function(RED) {
 						node.error("Device not recognized error");
 						somaDevice.disconnect();
 						
-						// Needs retry from scanning
 						return;
 					}
+
+					//  Not implementing speed changes at this moment due to unexpected results.
+					/**					
+					configCharacteristic = characteristics.filter(char => char.uuid === configCharUUID)[0];
+					configCharacteristic.subscribe();
 					
+					configCharacteristic.on('data', (data) => {
+						
+						if (data[1] == 3) {
+							
+							const bytes_speed = data.subarray(4,5);
+							const speed = bytes_speed.readIntLE(0, Buffer.byteLength(bytes_speed));
+							
+							node.send({ topic: "speed", payload: { "speed" : speed} });
+							
+						} else {
+							node.send({ topic: "config", payload: { "data" : data} });
+						}
+						
+					});
+					**/
+					
+					configCharacteristic.read();
+
 					chargingCharacteristic = characteristics.filter(char => char.uuid === chargingCharUUID)[0];
 					chargingCharacteristic.subscribe();
 					
 					chargingCharacteristic.on('data', (data) => {
-						const bytes = data.slice(0,2);
-						const charging = bytes.readIntLE(0, Buffer.byteLength(bytes));
-						node.send({ topic: "charging", payload: { "charging" : charging} });
+
+						const bytes_charging = data.subarray(0,2);
+						const charging = bytes_charging.readIntLE(0, Buffer.byteLength(bytes_charging));
+
+						const bytes_panel = data.subarray(2,4);
+						const panel = bytes_panel.readIntLE(0, Buffer.byteLength(bytes_panel));
+
+						node.send({ topic: "charging", payload: { "charging" : charging, "panel" : panel} });
 					});
 
 					positionCharacteristic = characteristics.filter(char => char.uuid === positionCharUUID)[0];
@@ -217,6 +250,11 @@ module.exports = function(RED) {
 					movePercentCharacteristic = characteristics.filter(char => char.uuid === movePercentUUID)[0];
 					motorCharacteristic = characteristics.filter(char => char.uuid === motorCharUUID)[0];
 					
+					node.status({ fill:"green",shape:"dot",text: "connected"});
+					node.send({ topic: "connection", payload: { "connection" : "connected"} });
+
+					connected = true;
+					
 				});
 				
 			});
@@ -228,7 +266,7 @@ module.exports = function(RED) {
 		//
 		function receiveCommand(msg) {
 
-			if (somaDevice) {
+			if (connected) {
 
 				var commandstring;
 				
@@ -244,34 +282,38 @@ module.exports = function(RED) {
 				//Handle command
 				switch (commandArray[0]) {
 				  case 'moveto':
-						var move_to_postion;
-						  	
-						try {
-							move_to_postion = parseInt(commandArray[1]);
-						} catch(error) {
-							node.error("Position not recognized.");
-							return;	
-						}
+				  		if (movePercentCharacteristic !== undefined ) {
+							var move_to_postion;
+							
+							try {
+								move_to_postion = parseInt(commandArray[1]);
+							} catch(error) {
+								node.error("Position not recognized.");
+								return;	
+							}
 						
-						if (move_to_postion < 0 || move_to_postion > 100) {
-							node.error("Position outside boundaries.");
-							return;
-						}
+							if (move_to_postion < 0 || move_to_postion > 100) {
+								node.error("Position outside boundaries.");
+								return;
+							}
 						
-						var movePercent = 100 - move_to_postion;
-						var movePercentString = movePercent.toString();
+							var movePercent = 100 - move_to_postion;
+							var movePercentString = movePercent.toString();
 
-						if (movePercentCharacteristic == null) {
-							return;
+							if (movePercentCharacteristic == null) {
+								return;
+							}
+
+							movePercentCharacteristic.write(Buffer.from([movePercentString.toString(16)]), false, function(error) {
+								if (error) { node.log(error); }
+							});
+						} else {
+						
 						}
 
-						movePercentCharacteristic.write(Buffer.from([movePercentString.toString(16)]), false, function(error) {
-							if (error) { node.log(error); }
-						});
-	
 						break;
 
-				  case 'moveup':
+				  case 'moveup':				  		
 						motorCharacteristic.write(Buffer.from([0x69]), false, (error) => {
 							if (error) { node.log(error); }
 						});
@@ -294,16 +336,52 @@ module.exports = function(RED) {
 						positionCharacteristic.read();
 						break;
 
+				  case 'getconfig':
+						configCharacteristic.read();
+						break;
+
 				  case 'identify':
 				        identifyCharacteristic.write(Buffer.from([1]));
 						break;
 
+				// Not implementing speed changes at this moment due to unexpected results.
+				/**
+				  case 'getspeed':
+				        configCharacteristic.write(Buffer.from([255,1,1]));
+						break;
+
+				  case 'setspeed':
+				        
+				        var speed;
+						try {
+							speed = parseInt(commandArray[1]);
+						} catch(error) {
+							node.error("Speed not recognized.");
+							return;	
+						}
+					
+						if (speed < 0 || speed > 100) {
+							node.error("Speed outside boundaries.");
+							return;
+						}
+						
+						const buf = Buffer.allocUnsafe(3);
+						buf.writeInt8(1,0);
+						buf.writeInt8(1,1);
+						buf.writeInt8(speed,2);
+						
+						configCharacteristic.write(buf);
+
+						break;
+				**/
 				  default:
 					  	node.error("Command not understood. ");
 				}
 				
 				return;
 				
+			} else {
+				node.error("Not connected.");			
 			}
     	}
     	
