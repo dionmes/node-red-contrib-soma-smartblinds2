@@ -1,20 +1,20 @@
 <script type="text/javascript">
 
-    RED.nodes.registerType('soma-smartblinds2',{
-        category: 'devices',
-        color: '#ff7f00',
-        inputs:1,
-        outputs:1,
-        align: 'right',
-        label: 'Smart Blinds',
-        paletteLabel: 'SmartBlinds2',
-        icon: 'smartblinds.svg',        
-        defaults: {
-            btId: {value: "", required: true },
-        },
-        oneditprepare: function() {
-        
-            var scanningInterval;
+	RED.nodes.registerType('soma-smartblinds2',{
+		category: 'devices',
+		color: '#ff7f00',
+		inputs:1,
+		outputs:1,
+		align: 'right',
+		label: 'Smart Blinds',
+		paletteLabel: 'SmartBlinds2',
+		icon: 'smartblinds.svg',		
+		defaults: {
+			btId: {value: "", required: true },
+		},
+		oneditprepare: function() {
+		
+			var scanningInterval;
 			var editor = this;
 				
 			$("#node-input-btId").append("<option value=''>Not selected</option>");
@@ -63,7 +63,7 @@
 							
 						});
 						
-						if (! data.editorScan)  {
+						if (! data.editorScan)	{
 							clearInterval(scanningInterval);
 							$("#bt_scan").text("Scan");
 						}
@@ -79,39 +79,39 @@
 				 });
 			}
 			
-        },
-        oneditsave: function () {
-         	$.getJSON('smartblinds-bluetooth-scan-stop') },
-        oneditcancel:  function () {
-         	$.getJSON('smartblinds-bluetooth-scan-stop') },
-        oneditdelete:  function () {
-         	$.getJSON('smartblinds-bluetooth-scan-stop') }
-    });
+		},
+		oneditsave: function () {
+			$.getJSON('smartblinds-bluetooth-scan-stop') },
+		oneditcancel:  function () {
+			$.getJSON('smartblinds-bluetooth-scan-stop') },
+		oneditdelete:  function () {
+			$.getJSON('smartblinds-bluetooth-scan-stop') }
+	});
 
 </script>
 
 <script type="text/html" data-template-name="soma-smartblinds2">
 
-    <div class="form-row">
-	    <button type="button" class="red-ui-button" id="bt_scan">Scan</button>
-    </div>
+	<div class="form-row">
+		<button type="button" class="red-ui-button" id="bt_scan">Scan</button>
+	</div>
 
-    <div class="form-row">
-        <label for="node-input-btId">Device ID <i class="fa fa-bluetooth-b"></i></label>
-        <select id="node-input-btId""></select>
-    </div>
-    
-    <div class="form-tips"><b>Tip: </b>Look for devices with the name S or RISE to connect with the Soma SmartBlinds device.</div>
-     
+	<div class="form-row">
+		<label for="node-input-btId">Device ID <i class="fa fa-bluetooth-b"></i></label>
+		<select id="node-input-btId""></select>
+	</div>
+	
+	<div class="form-tips"><b>Tip: </b>Look for devices with the name S or RISE to connect with the Soma SmartBlinds device.</div>
+	 
 </script>
 
 <script type="text/html" data-help-name="soma-smartblinds2">
-    <p>Node for Soma SmartBlinds 2.</p>
-    In the Device ID menu select the SmartBlinds device to connect.
+	<p>Node for Soma SmartBlinds 2.</p>
+	In the Device ID menu select the SmartBlinds device to connect.
 	The SOMA smart shade device needs to be configured with the SOMA app before connecting.
-    After pressing the scan button, devices will appear in the dropdown menu. Look for devices with the name S or RISE to connect with the device.
-    <h3>Messages</H3>
-    The Node will report battery and position messages.
+	After pressing the scan button, devices will appear in the dropdown menu. Look for devices with the name S or RISE to connect with the device.
+	<h3>Messages</H3>
+	The Node will report battery and position messages.
 	</p>
 	<h3>Commands</H3>
 	The input of the node accepts movement commands.<br><br>

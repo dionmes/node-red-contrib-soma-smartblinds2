@@ -187,7 +187,7 @@ module.exports = function(RED) {
 						return;
 					}
 
-					//  Not implementing speed changes at this moment due to unexpected results.
+					//	Not implementing speed changes at this moment due to unexpected results.
 					/**					
 					configCharacteristic = characteristics.filter(char => char.uuid === configCharUUID)[0];
 					configCharacteristic.subscribe();
@@ -274,7 +274,7 @@ module.exports = function(RED) {
 					commandstring = msg.payload.toString().toLowerCase();
 				} catch(error) {
 					node.error("Command not recognized.");
-					return;	
+					return; 
 				}
 
 				const commandArray = commandstring.split(' ');
@@ -282,14 +282,14 @@ module.exports = function(RED) {
 				//Handle command
 				switch (commandArray[0]) {
 				  case 'moveto':
-				  		if (movePercentCharacteristic !== undefined ) {
+						if (movePercentCharacteristic !== undefined ) {
 							var move_to_postion;
 							
 							try {
 								move_to_postion = parseInt(commandArray[1]);
 							} catch(error) {
 								node.error("Position not recognized.");
-								return;	
+								return; 
 							}
 						
 							if (move_to_postion < 0 || move_to_postion > 100) {
@@ -313,7 +313,7 @@ module.exports = function(RED) {
 
 						break;
 
-				  case 'moveup':				  		
+				  case 'moveup':						
 						motorCharacteristic.write(Buffer.from([0x69]), false, (error) => {
 							if (error) { node.log(error); }
 						});
@@ -323,14 +323,14 @@ module.exports = function(RED) {
 						motorCharacteristic.write(Buffer.from([0x96]), true, (error) => {
 							if (error) { node.log(error); }
 						});
-					  	break;
+						break;
 				  
 				  case 'stop':
 						motorCharacteristic.write(Buffer.from([0]), false, (error) => {
 							if (error) { node.log(error); }
 							positionCharacteristic.read();
 						});
-					  	break;
+						break;
 				  
 				  case 'getposition':
 						positionCharacteristic.read();
@@ -341,23 +341,23 @@ module.exports = function(RED) {
 						break;
 
 				  case 'identify':
-				        identifyCharacteristic.write(Buffer.from([1]));
+						identifyCharacteristic.write(Buffer.from([1]));
 						break;
 
 				// Not implementing speed changes at this moment due to unexpected results.
 				/**
 				  case 'getspeed':
-				        configCharacteristic.write(Buffer.from([255,1,1]));
+						configCharacteristic.write(Buffer.from([255,1,1]));
 						break;
 
 				  case 'setspeed':
-				        
-				        var speed;
+						
+						var speed;
 						try {
 							speed = parseInt(commandArray[1]);
 						} catch(error) {
 							node.error("Speed not recognized.");
-							return;	
+							return; 
 						}
 					
 						if (speed < 0 || speed > 100) {
@@ -375,7 +375,7 @@ module.exports = function(RED) {
 						break;
 				**/
 				  default:
-					  	node.error("Command not understood. ");
+						node.error("Command not understood. ");
 				}
 				
 				return;
@@ -383,11 +383,11 @@ module.exports = function(RED) {
 			} else {
 				node.error("Not connected.");			
 			}
-    	}
-    	
+		}
+		
 		/** functions to communicate with node editor **/
-    	
-    	// Request to Start scanning
+		
+		// Request to Start scanning
 		RED.httpAdmin.get("/smartblinds-bluetooth-scan-start", RED.auth.needsPermission('SmartBlindsNode.read'), function(req,res) {
 		
 			editorDeviceList = [];
