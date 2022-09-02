@@ -46,8 +46,8 @@ Distance is important. Make sure the bluetooth signal is strong enough.
 Run the following command:  
 ```
 sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
-This grants the node binary cap_net_raw privileges, so it can start/stop BLE advertising.
 ```   
+This grants the node binary cap_net_raw privileges, so it can start/stop BLE advertising.
 
 Note: The above command requires setcap to be installed. It can be installed the following way:
 
