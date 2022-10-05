@@ -336,6 +336,10 @@ module.exports = function(RED) {
 						positionCharacteristic.read();
 						break;
 
+				  case 'getbattery':
+						battPercentCharacteristic.read();
+						break;
+
 				  case 'getconfig':
 						configCharacteristic.read();
 						break;

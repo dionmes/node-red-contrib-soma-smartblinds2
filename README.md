@@ -26,12 +26,14 @@ The Node accepts the following commmands;
 - moveDown
 - stop
 - getPosition
+- getBattery
 - identify
 
 ## Position 
 The device will try to move to the exact position but will stop at approximation. Position will be correctly reported.
 
 ## Changes;
+- 0.3.1, added getBattery command to instantly retrieve the current battery value
 - 0.3.0, Added Charging and panel reporting.
 
 ## Bluetooth
