@@ -34,7 +34,8 @@ module.exports = function(RED) {
 		var identifyCharacteristic;
 		var chargingCharacteristic;
 		var configCharacteristic;
-				
+		var battPercentCharacteristic;
+
 		var btId = config.btId.toLowerCase().replace(/:/g,'');
 		
 		node.log("Soma Smartblinds node started. " + btId);
