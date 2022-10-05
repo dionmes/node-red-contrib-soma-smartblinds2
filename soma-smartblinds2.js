@@ -207,9 +207,9 @@ module.exports = function(RED) {
 						}
 						
 					});
-					**/
 					
 					configCharacteristic.read();
+					**/
 
 					chargingCharacteristic = characteristics.filter(char => char.uuid === chargingCharUUID)[0];
 					chargingCharacteristic.subscribe();
@@ -341,16 +341,16 @@ module.exports = function(RED) {
 						battPercentCharacteristic.read();
 						break;
 
-				  case 'getconfig':
-						configCharacteristic.read();
-						break;
-
 				  case 'identify':
 						identifyCharacteristic.write(Buffer.from([1]));
 						break;
 
 				// Not implementing speed changes at this moment due to unexpected results.
 				/**
+				  case 'getconfig':
+						configCharacteristic.read();
+						break;
+
 				  case 'getspeed':
 						configCharacteristic.write(Buffer.from([255,1,1]));
 						break;
