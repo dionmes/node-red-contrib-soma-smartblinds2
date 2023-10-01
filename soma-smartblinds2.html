@@ -11,81 +11,7 @@
 		icon: 'smartblinds.svg',		
 		defaults: {
 			btId: {value: "", required: true },
-		},
-		oneditprepare: function() {
-		
-			var scanningInterval;
-			var editor = this;
-				
-			$("#node-input-btId").append("<option value=''>Not selected</option>");
-			if (editor.btId !== undefined && editor.btId !=="") {
-				$("#node-input-btId").append("<option selected value=" + editor.btId + ">" + editor.btId + "</option>");
-			}
-			
-			$("#bt_scan").click( function() {
-				if ( $("#bt_scan").text() == "Scan" ) {
-					startBTScan();
-				} else {
-					stoptBTScan();
-				}
-			});
-
-			$("#node-input-btId").change( function() {
-				stoptBTScan();
-			});
-
-			function startBTScan() {
-			
-				$.getJSON('smartblinds-bluetooth-scan-start',function(data) {
-					$("#bt_scan").html("Stop scan <i class='fa fa-spinner fa-pulse'></i>");
-				 });
-			 
-				 scanningInterval = setInterval(() => { 
-				 
-					$.getJSON('smartblinds-bluetooth-list',function(data) {
-						
-						$("#node-input-btId option").remove();
-						
-						$("#node-input-btId").append("<option value=''>Not selected</option>");
-						if (editor.btId !== undefined && editor.btId !=="") {
-							$("#node-input-btId").append("<option selected value=" + editor.btId + ">" + editor.btId + "</option>");
-						}
-
-						$.each(data.devices, function (index, value) {
-							
-							if (value.id !== editor.btId) {
-								if (value.name == undefined) {
-									$("#node-input-btId").append("<option value=" + value.id + ">" + value.id + "</option>");
-								} else {
-									$("#node-input-btId").append("<option value=" + value.id + ">" + value.name + "</option>");
-								}
-							}
-							
-						});
-						
-						if (! data.editorScan)	{
-							clearInterval(scanningInterval);
-							$("#bt_scan").text("Scan");
-						}
-						
-					 });
-				 }, 3*1000);
-			}
-
-			function stoptBTScan() {
-				clearInterval(scanningInterval);
-				$.getJSON('smartblinds-bluetooth-scan-stop',function(data) {
-					$("#bt_scan").text("Scan");
-				 });
-			}
-			
-		},
-		oneditsave: function () {
-			$.getJSON('smartblinds-bluetooth-scan-stop') },
-		oneditcancel:  function () {
-			$.getJSON('smartblinds-bluetooth-scan-stop') },
-		oneditdelete:  function () {
-			$.getJSON('smartblinds-bluetooth-scan-stop') }
+		}
 	});
 
 </script>
@@ -93,15 +19,11 @@
 <script type="text/html" data-template-name="soma-smartblinds2">
 
 	<div class="form-row">
-		<button type="button" class="red-ui-button" id="bt_scan">Scan</button>
-	</div>
-
-	<div class="form-row">
-		<label for="node-input-btId">Device ID <i class="fa fa-bluetooth-b"></i></label>
-		<select id="node-input-btId""></select>
+		<label for="node-input-btId"><i class="fa fa-bookmark"></i> Bluetooth ID </label>
+		<input type="text" id="node-input-btId">
 	</div>
 	
-	<div class="form-tips"><b>Tip: </b>Look for devices with the name S or RISE to connect with the Soma SmartBlinds device.</div>
+	<div class="form-tips"><b>Tip: </b>Look for device ID in the Smart Blinds 2 app under Troubleshooting - Serial Number. Which is actually the Bluetooth network address. You can input it with or without : .</div>
 	 
 </script>
 

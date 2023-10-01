@@ -8,9 +8,6 @@ module.exports = function(RED) {
 
 		var node = this;
 
-		var editorDeviceList = [];
-		var editorScan = false;
-
 		const positionCharUUID = '00001525b87f490c92cb11ba5ea5167c';
 		const movePercentUUID = '00001526b87f490c92cb11ba5ea5167c';
 		const motorCharUUID = '00001530b87f490c92cb11ba5ea5167c';
@@ -406,46 +403,6 @@ module.exports = function(RED) {
 				node.error("Cannot process command as not connected.");
 			}
 		}
-
-		/** functions to communicate with node editor **/
-
-		// Request to Start scanning
-		RED.httpAdmin.get("/smartblinds-bluetooth-scan-start", RED.auth.needsPermission('SmartBlindsNode.read'), function(req,res) {
-
-			editorDeviceList = [];
-			editorScan = true;
-			noble.startScanning();
-
-			noble.on('discover', function (peripheral) {
-				editorDeviceList.push({ "name" : peripheral.advertisement.localName, "id" : peripheral.id });
-			});
-
-			setTimeout(() => { 
-				noble.stopScanning(); 
-				editorScan = false;
-			}, 60*1000);
-
-			res.json({"editorScan" : editorScan});
-
-		});
-
-		// Request to Stop scanning
-		RED.httpAdmin.get("/smartblinds-bluetooth-scan-stop", RED.auth.needsPermission('SmartBlindsNode.read'), function(req,res) {
-			noble.removeAllListeners('discover');
-			noble.stopScanning();
-			editorScan = false;
-			res.json({"editorScan" : editorScan});
-		});
-
-		// Found devices list
-		RED.httpAdmin.get("/smartblinds-bluetooth-list", RED.auth.needsPermission('SmartBlindsNode.read'), function(req,res) {
-
-			var data = {};
-			data.editorScan = editorScan;
-			data.devices = editorDeviceList;
-			res.json(data);
-
-		});
 
 	}
 

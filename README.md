@@ -33,7 +33,7 @@ The Node accepts the following commmands;
 The device will try to move to the exact position but will stop at approximation. Position will be correctly reported.
 
 ## Changes;
-- 0.3.2, stability fixes. Better reconnect performance.
+- 0.3.2, stability fixes. Better reconnect performance. Removed config scanning options. Manual input of Bluetooth ID is now required.
 - 0.3.1, added getBattery command to instantly retrieve the current battery value
 - 0.3.0, Added Charging and panel reporting.
 
