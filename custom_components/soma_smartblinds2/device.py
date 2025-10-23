@@ -29,6 +29,7 @@ class SomaDevice:
         # listeners
         self._position_listeners: list[Callable[[int], None]] = []
         self._battery_listeners: list[Callable[[int], None]] = []
+        self._connection_listeners: list[Callable[[bool], None]] = []
 
         self._running = False
 
@@ -143,9 +144,24 @@ class SomaDevice:
             except Exception:
                 _LOGGER.debug("Battery notify not available")
 
+            # Register disconnect callback if available
+            try:
+                # bleak provides set_disconnected_callback on some backends
+                client.set_disconnected_callback(self._handle_disconnect)
+            except Exception:
+                # not all BleakClient implementations support this
+                _LOGGER.debug("Bleak client does not support set_disconnected_callback")
+
             self._client = client
             self._connected_event.set()
             _LOGGER.info("Connected to Soma %s", self.bt_address)
+
+            # notify connection listeners
+            for cb in list(self._connection_listeners):
+                try:
+                    cb(True)
+                except Exception:
+                    _LOGGER.exception("Connection listener failed on connect")
 
     def _handle_position(self, sender: int, data: bytearray):
         try:
@@ -169,6 +185,24 @@ class SomaDevice:
                     _LOGGER.exception("Battery listener failed")
         except Exception:
             _LOGGER.exception("Failed to parse battery notification")
+
+    def _handle_disconnect(self, client: BleakClient):
+        _LOGGER.warning("Soma device %s disconnected", self.bt_address)
+        # clear client and connected event, then notify listeners
+        try:
+            self._client = None
+        except Exception:
+            pass
+        try:
+            self._connected_event.clear()
+        except Exception:
+            pass
+
+        for cb in list(self._connection_listeners):
+            try:
+                cb(False)
+            except Exception:
+                _LOGGER.exception("Connection listener failed on disconnect")
 
     async def write_move_percent(self, percent: int):
         async with self._lock:
@@ -195,6 +229,14 @@ class SomaDevice:
 
     def add_battery_listener(self, cb: Callable[[int], None]):
         self._battery_listeners.append(cb)
+
+    def add_connection_listener(self, cb: Callable[[bool], None]):
+        """Register a callback(cb(connected: bool)) to receive connection changes."""
+        self._connection_listeners.append(cb)
+
+    def remove_connection_listener(self, cb: Callable[[bool], None]):
+        if cb in self._connection_listeners:
+            self._connection_listeners.remove(cb)
 
     def remove_battery_listener(self, cb: Callable[[int], None]):
         if cb in self._battery_listeners:

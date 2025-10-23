@@ -60,6 +60,14 @@ class SomaSmartBlindsCover(CoverEntity):
         # register listeners
         self._device.add_position_listener(self._on_position)
         self._device.add_battery_listener(self._on_battery)
+        # connection listener with debounce
+        self._disconnect_handle = None
+        self._reconnect_wait = hass.data[DOMAIN][entry_id].get("options", {}).get("reconnect_wait", 3.0)
+        self._device.add_connection_listener(self._on_connection_change)
+
+    @property
+    def unique_id(self) -> str:
+        return f"{self._bt_address.replace(':','').lower()}_cover"
 
     def _on_position(self, pos: int):
         self._position = pos
@@ -68,6 +76,29 @@ class SomaSmartBlindsCover(CoverEntity):
     def _on_battery(self, batt: int):
         self._battery = batt
         self.schedule_update_ha_state()
+
+    def _on_connection_change(self, connected: bool):
+        # debounce brief disconnects
+        if connected:
+            # cancel pending disconnect
+            if self._disconnect_handle and not self._disconnect_handle.cancelled():
+                self._disconnect_handle.cancel()
+            self._available = True
+            self.schedule_update_ha_state()
+        else:
+            # schedule setting available False after reconnect_wait
+            loop = asyncio.get_event_loop()
+            if self._disconnect_handle and not self._disconnect_handle.cancelled():
+                self._disconnect_handle.cancel()
+
+            async def _mark_unavailable():
+                await asyncio.sleep(self._reconnect_wait)
+                # if still disconnected
+                if not self._device._client or not getattr(self._device._client, "is_connected", False):
+                    self._available = False
+                    self.schedule_update_ha_state()
+
+            self._disconnect_handle = loop.create_task(_mark_unavailable())
 
     @property
     def name(self):
@@ -149,5 +180,6 @@ class SomaSmartBlindsCover(CoverEntity):
         try:
             self._device.remove_position_listener(self._on_position)
             self._device.remove_battery_listener(self._on_battery)
+            self._device.remove_connection_listener(self._on_connection_change)
         except Exception:
             pass
