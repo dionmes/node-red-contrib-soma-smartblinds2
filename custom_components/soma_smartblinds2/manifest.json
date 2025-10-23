@@ -1,0 +1,14 @@
+{
+  "domain": "soma_smartblinds2",
+  "name": "Soma SmartBlinds 2",
+  "version": "0.0.1",
+  "documentation": "https://github.com/dionmes/node-red-contrib-soma-smartblinds2",
+  "requirements": [
+    "bleak>=0.20.0",
+    "bleak-retry-connector>=0.2.0"
+  ],
+  "config_flow": true,
+  "platforms": ["cover", "sensor"],
+  "codeowners": ["@dionmes"],
+  "iot_class": "local_polling"
+}

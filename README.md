@@ -1,3 +1,14 @@
+# Home Assistant update
+
+As I stopped using node-red for Home Automation and switched to Home Assistant, I needed this integration also to change.
+I used some vibe coding to convert the code to Home Assistant code. Its still experimental, when finalized I will create a new repo.
+
+So if you want, you can try it on your own risk.
+So this is now a custom component for Home Assistant to control Soma smart blinds 2 via Bluetooth (BLE) directly. No bridge or additional hardware/software is necessary.
+
+You can get it from the sub dir. customer_components in this repo.
+
+
 # node-red-contrib-soma-blinds2
 NodeRed node for Soma Smart Blinds 2
 
