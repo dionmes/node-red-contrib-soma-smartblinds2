@@ -82,7 +82,7 @@ module.exports = function(RED) {
 				connected = true;
 				noble.stopScanning();
 
-				node.log("Device found : " + btId);
+				node.send({ topic: "connection", payload: { "connection" : "Device found : " + btId } });
 
 				connectToSomaDevice(peripheral);
 
@@ -133,12 +133,13 @@ module.exports = function(RED) {
 
 				if (error) {
 
-					node.error("Connection error - reconnecting");
-
+					node.error("Connection error - reset");
+					
 					peripheral.disconnect();
 					connected = false;
+					noble.reset();
 
-					node.status({ fill:"red",shape:"dot",text: "Error - Reconnecting"});
+					node.status({ fill:"red",shape:"dot",text: "Scanning"});
 
 					somaDeviceDisconnectHandler = setTimeout(() => {
 
@@ -157,13 +158,14 @@ module.exports = function(RED) {
 					if (somaDeviceDisconnectHandler)  { clearTimeout(somaDeviceDisconnectHandler); }
 
 					peripheral.once('disconnect', (error) => {
-
+						// peripheral.once('disconnect', () => {});
+	    				
+	    				peripheral.disconnect();
 						connected = false;
 
-						node.log("Disconnected : " + error + " - reconnecting");
-
-						node.status({ fill:"red",shape:"dot",text: "Reconnecting" });
-						node.send({ topic: "connection", payload: { "connection" : "reconnecting" } });
+						node.status({ fill:"red",shape:"dot",text: "Scanning" });
+						node.send({ topic: "connection", payload: { "connection" : "Disconnected : " + error + " - reset/scanning" } });
+						noble.reset();
 
 						if (reconnect) { 
 							somaDeviceDisconnectHandler = setTimeout(() => {
@@ -174,9 +176,6 @@ module.exports = function(RED) {
 							}, reconnect_wait * 1000);
 						}
 					});	
-
-					node.status({ fill:"blue",shape:"dot",text: "Connecting"});
-					node.send({ topic: "connection", payload: { "connection" : "connecting"} });
 
 					let expectedCharUuids = [positionCharUUID, movePercentUUID, motorCharUUID, battPercentUUID, groupUUID, nameUUID, notifyUUID, calibrateCharUUID, chargingCharUUID, configCharUUID];
 
@@ -218,6 +217,7 @@ module.exports = function(RED) {
 						configCharacteristic.read();
 						**/
 
+						// Charging 
 						chargingCharacteristic = characteristics.filter(char => char.uuid === chargingCharUUID)[0];
 					
 						chargingCharacteristic.on('data', (data) => {
@@ -234,6 +234,7 @@ module.exports = function(RED) {
 
 						chargingCharacteristic.subscribe();
 
+						// Position
 						positionCharacteristic = characteristics.filter(char => char.uuid === positionCharUUID)[0];
 
 						positionCharacteristic.on('data', (data) => {
@@ -244,6 +245,7 @@ module.exports = function(RED) {
 						positionCharacteristic.subscribe();
 						positionCharacteristic.read();
 
+						// Battery
 						battPercentCharacteristic = characteristics.filter(char => char.uuid === battPercentUUID)[0];
 
 						battPercentCharacteristic.on('data', (data) => {
@@ -256,17 +258,16 @@ module.exports = function(RED) {
 						battPercentCharacteristic.subscribe();
 						battPercentCharacteristic.read();
 
-						identifyCharacteristic = characteristics.filter(char => char.uuid === notifyUUID)[0];
+						// Other
 						movePercentCharacteristic = characteristics.filter(char => char.uuid === movePercentUUID)[0];
 						motorCharacteristic = characteristics.filter(char => char.uuid === motorCharUUID)[0];
-
-						node.log("Connected : " + btId);
+						identifyCharacteristic = characteristics.filter(char => char.uuid === notifyUUID)[0];
 
 						// Reference for disconnect during node shutdown.
 						somaDevice = peripheral;
 
 						node.status({ fill:"green",shape:"dot",text: "connected"});
-						node.send({ topic: "connection", payload: { "connection" : "connected"} });
+						node.send({ topic: "connection", payload: { "connection" : "connected " + btId} });
 
 					});
 				}
@@ -320,7 +321,7 @@ module.exports = function(RED) {
 							}
 
 							movePercentCharacteristic.write(Buffer.from([movePercentString.toString(16)]), false, function(error) {
-								if (error) { node.log(error); }
+								if (error) { node.error( "Motor error " + error ); }
 							});
 						} else {
 
@@ -330,19 +331,21 @@ module.exports = function(RED) {
 
 				  case 'moveup':
 						motorCharacteristic.write(Buffer.from([0x69]), false, (error) => {
-							if (error) { node.log(error); }
+							if (error) { node.error( "Motor error " + error ); }
+							positionCharacteristic.read();
 						});
 						break;
 
 				  case 'movedown':
 						motorCharacteristic.write(Buffer.from([0x96]), true, (error) => {
-							if (error) { node.log(error); }
+							if (error) { node.error( "Motor error " + error ); }
+							positionCharacteristic.read();
 						});
 						break;
 
 				  case 'stop':
 						motorCharacteristic.write(Buffer.from([0]), false, (error) => {
-							if (error) { node.log(error); }
+							if (error) { node.error( "Motor error " + error ); }
 							positionCharacteristic.read();
 						});
 						break;
